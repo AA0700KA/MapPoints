@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Three Points</string>
+    <string name="delete_points">Delete points</string>
+    <string name="test_distance">Test Distance</string>
+    <string name="add_path">Add Path</string>
+    <string name="from">From:</string>
+    <string name="to">To:</string>
+    <string name="distance">Distance:</string>
+    <string name="duration">Duration</string>
+</resources>
