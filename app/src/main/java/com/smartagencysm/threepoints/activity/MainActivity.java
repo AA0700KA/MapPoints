@@ -44,6 +44,11 @@ import org.androidannotations.annotations.ViewById;
 import org.androidannotations.annotations.rest.RestService;
 
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @EActivity(R.layout.main_layout)
 public class MainActivity extends AppCompatActivity {
@@ -137,6 +142,18 @@ public class MainActivity extends AppCompatActivity {
         pointsCounter = 3;
     }
 
+    private void putHeaders() {
+        for (int i = 0; i < markerPoints.length; i++) {
+            if (markerPoints[i] != null) {
+                String title = getTitleDistance(markerPoints[i]);
+
+                if (title != null) {
+                    markerPoints[i].setTitle(title);
+                }
+            }
+        }
+    }
+
     private void addMyLocationMarker(Location location){
 
         if(null != map){
@@ -158,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
                     .build();
             CameraUpdate update = CameraUpdateFactory.newCameraPosition(cameraPosition);
             map.animateCamera(update);
+            putHeaders();
             addPath();
         }
     }
@@ -174,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
                         );
 
                         markerPoints[pointsCounter++] = marker;
+                        putHeaders();
                     } else {
                         Toast.makeText(MainActivity.this, "Three points are exists here", Toast.LENGTH_SHORT).show();
                         return;
@@ -193,6 +212,31 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "Error creating map", Toast.LENGTH_SHORT).show();
         }
 
+    }
+
+
+
+    private String getTitleDistance(Marker marker) {
+        if (myLocationMarker != null && NetworkUtils.isNetworkAvailable(MainActivity.this)) {
+            LatLng myLatLng = myLocationMarker.getPosition();
+            LatLng thisLatLng = marker.getPosition();
+
+            String origin = myLatLng.latitude + "," + myLatLng.longitude;
+            String destination = thisLatLng.latitude + "," + thisLatLng.longitude;
+
+            ExecutorService executorService = Executors.newFixedThreadPool(3);
+            Callable<Double> callable = MapCounting.getCallable(api, origin, destination);
+            Future<Double> future = executorService.submit(callable);
+            String result = null;
+            try {
+                result = "To your location to here " + future.get() + " km";
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            return result;
+        }
+        return null;
     }
 
     public void removeLocationMarkers(MenuItem menuItem) {
@@ -216,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addPath() {
-        int index = MapCounting.minIndex(myLocationMarker, markerPoints);
+        int index = MapCounting.minIndex(myLocationMarker, markerPoints, api);
         if (index > -1) {
             Log.i("MIN", "Min index: " + index);
             addPath(myLocationMarker, markerPoints[index]);
